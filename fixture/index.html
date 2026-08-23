@@ -52,7 +52,7 @@
       }
     });
 
-    var inviteBtn = document.getElementById("invite");
+    var inviteBtn = document.getElementById("invite-button");
     if (inviteBtn) inviteBtn.addEventListener("click", async () => {
       const r = await fetch("/api/invite");
       const d = await r.json();
