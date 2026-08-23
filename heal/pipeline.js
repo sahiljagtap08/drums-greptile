@@ -17,8 +17,23 @@ const { replayIncident } = require("./replay");
 const { loadKey, triggerReview } = require("./greptile");
 const { remember, recall, anchorOf, summarize } = require("./memory");
 const { visionCheck } = require("./vision");
+const ui = require("./ui");
 
-const say = (m) => console.log(m);
+const HEADERS = new Set([
+  "Observed failure", "Captured", "What Drums remembers about this product", "Diff:",
+]);
+function styleLine(m) {
+  if (typeof m !== "string") return m;
+  if (m.startsWith("✓ ")) return ui.c.green("✓") + " " + m.slice(2);
+  if (m.startsWith("✗ ")) return ui.c.red("✗") + " " + m.slice(2);
+  if (m.startsWith("⚠ ")) return ui.c.yellow("⚠") + " " + m.slice(2);
+  if (HEADERS.has(m) || m.startsWith("Repairing with Codex") || m.startsWith("Opening candidate PR")) return ui.head(m);
+  if (m.startsWith("Artifacts: ") || m.startsWith("Candidate worktree") || m.startsWith("Candidate PR"))
+    return ui.dim(m);
+  if (m.startsWith("  ")) return ui.dim(m);
+  return m;
+}
+const say = (m) => console.log(styleLine(m));
 
 function freePort() {
   return new Promise((resolve) => {
@@ -28,7 +43,7 @@ function freePort() {
 }
 
 function git(dir, ...args) {
-  return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8" });
+  return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 }
 
 function bootApp(dir, startCmd, port, extraEnv = {}) {
@@ -90,11 +105,18 @@ function codexRepair(projectDir, prompt, timeoutMs = 600000) {
       ["exec", "-C", projectDir, "-s", "workspace-write", "--skip-git-repo-check", "--color", "never", prompt],
       { stdio: ["ignore", "pipe", "pipe"], env: process.env }
     );
+    const sp = ui.spin("codex is writing the repair");
     let out = "";
-    child.stdout.on("data", (d) => { out += d; process.stdout.write(d.toString().split("\n").map((l) => "    codex | " + l).join("\n").slice(0, 2000) + "\n"); });
+    let spinning = true;
+    child.stdout.on("data", (d) => {
+      if (spinning) { sp.clear(); spinning = false; }
+      out += d;
+      process.stdout.write(ui.dim(d.toString().split("\n").map((l) => "  codex │ " + l).join("\n").slice(0, 2000)) + "\n");
+    });
     child.stderr.on("data", (d) => (out += d));
-    const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} resolve({ ok: false, out, timedOut: true }); }, timeoutMs);
-    child.on("exit", (code) => { clearTimeout(timer); resolve({ ok: code === 0, out, code }); });
+    const stop = () => { if (spinning) { sp.clear(); spinning = false; } };
+    const timer = setTimeout(() => { stop(); try { child.kill("SIGKILL"); } catch {} resolve({ ok: false, out, timedOut: true }); }, timeoutMs);
+    child.on("exit", (code) => { stop(); clearTimeout(timer); resolve({ ok: code === 0, out, code }); });
   });
 }
 
@@ -196,16 +218,18 @@ async function runPipeline(targetDir, incident, cfg) {
   try {
     // --- reproduce against HEAD ---
     mark("REPRODUCING");
-    say("Reproducing against HEAD (isolated worktree)...");
+    const spRepro = ui.spin("reproducing against HEAD (isolated worktree)");
     if (cfg.install) execFileSync("sh", ["-c", cfg.install], { cwd: projectDir, stdio: "ignore" });
     const portA = await freePort();
     app = bootApp(projectDir, cfg.start, portA);
     if (!(await waitHealthy(`http://localhost:${portA}`, cfg.health))) {
+      spRepro.clear();
       say("✗ HEAD app failed to boot: " + app.tail());
       result.state = "INCONCLUSIVE";
       return verdict();
     }
     const repro = await replayIncident(incident, `http://localhost:${portA}`, path.join(artifacts, "before.png"));
+    spRepro.clear();
     fs.writeFileSync(path.join(artifacts, "reproduction.json"), JSON.stringify(repro, null, 2));
     killApp(app); app = null;
     if (!repro.completed || !repro.originalFailureObserved) {
@@ -267,15 +291,16 @@ async function runPipeline(targetDir, incident, cfg) {
 
     // --- verify: reboot the changed app, replay the SAME evidence ---
     mark("VERIFYING");
-    say("Restarting candidate app from the changed worktree...");
+    const spVerify = ui.spin("rebooting the candidate and replaying the original interaction");
     const portB = await freePort();
     app = bootApp(projectDir, cfg.start, portB);
     if (!(await waitHealthy(`http://localhost:${portB}`, cfg.health))) {
+      spVerify.clear();
       say("✗ candidate app failed to boot after the patch: " + app.tail());
       return verdict();
     }
-    say("Verifying: replaying the original user interaction...");
     const verify = await replayIncident(incident, `http://localhost:${portB}`, path.join(artifacts, "after.png"));
+    spVerify.clear();
     fs.writeFileSync(path.join(artifacts, "verification.json"), JSON.stringify(verify, null, 2));
     killApp(app); app = null;
     if (!verify.completed) {

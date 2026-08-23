@@ -8,6 +8,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const { startCollector } = require("./collector");
 const { runPipeline } = require("./pipeline");
+const ui = require("./ui");
 
 const COLLECTOR_PORT = 4600;
 
@@ -56,9 +57,10 @@ async function main() {
     if (busy) { console.log("(incident received while a repair is running — ignored)"); return; }
     busy = true;
     try {
-      console.log("\n════════ drums: user failure observed ════════");
+      console.log("\n" + ui.rule("drums · user failure observed"));
       const result = await runPipeline(targetDir, incident, cfg);
-      console.log("════════ drums: " + result.state + " ════════\n");
+      const tint = result.state === "VERIFIED" ? ui.c.green : ui.c.red;
+      console.log(ui.rule("drums · " + result.state).replace(result.state, tint(result.state)) + "\n");
     } catch (e) {
       console.error("pipeline error:", e.message);
     } finally {
@@ -66,8 +68,13 @@ async function main() {
     }
   }, { repoRoot });
 
-  console.log(`drums is watching  →  app: http://localhost:${prodPort}${cfg.app || "/"}   console: http://localhost:${COLLECTOR_PORT}`);
-  console.log("Use the app like a real user. If something fails for you, drums will notice.");
+  const lines = [
+    { plain: "drums — the product that improves itself", styled: ui.head("drums") + ui.dim(" — the product that improves itself") },
+    { plain: `app      http://localhost:${prodPort}${cfg.app || "/"}`, styled: ui.dim("app      ") + `http://localhost:${prodPort}${cfg.app || "/"}` },
+    { plain: `console  http://localhost:${COLLECTOR_PORT}`, styled: ui.dim("console  ") + ui.c.cyan(`http://localhost:${COLLECTOR_PORT}`) },
+  ];
+  console.log(ui.banner(lines));
+  console.log(ui.dim("Use the app like a real user. If something fails for you, drums will notice."));
 }
 
 main();
