@@ -4,7 +4,7 @@
 // observed. It never decides "fixed" — the pipeline does.
 const { chromium } = require("playwright");
 
-async function replayIncident(incident, baseURL) {
+async function replayIncident(incident, baseURL, screenshotPath) {
   const browser = await chromium.launch();
   const page = await browser.newPage();
   const responses = [];
@@ -81,6 +81,7 @@ async function replayIncident(incident, baseURL) {
       .map((r) => `${r.method} ${r.path} -> ${r.status}`)
       .concat(pageErrors.map((e) => `pageerror: ${e}`));
     const bodyText = await page.evaluate(() => document.body.innerText).catch(() => "");
+    if (screenshotPath) await page.screenshot({ path: screenshotPath }).catch(() => {});
     await browser.close();
     return { completed: true, originalFailureObserved, otherFailures, steps, responses, pageErrors, effect, pageText: bodyText.slice(0, 500) };
   }
@@ -99,6 +100,7 @@ async function replayIncident(incident, baseURL) {
     .concat(failure.kind === "jserror" ? [] : pageErrors.map((e) => `pageerror: ${e}`));
 
   const bodyText = await page.evaluate(() => document.body.innerText).catch(() => "");
+  if (screenshotPath) await page.screenshot({ path: screenshotPath }).catch(() => {});
   await browser.close();
   return { completed: true, originalFailureObserved, otherFailures, steps, responses, pageErrors, pageText: bodyText.slice(0, 500) };
 }
