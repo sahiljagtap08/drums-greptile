@@ -45,7 +45,7 @@ function parseVerdict(text, model) {
 async function geminiCheck(beforePng, afterPng, failureDescription) {
   const key = envLocalValue("GEMINI_API_KEY");
   if (!key) return null;
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3.6-flash";
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
@@ -80,7 +80,7 @@ async function vertexCheck(beforePng, afterPng, failureDescription) {
     return null;
   }
   if (!token || !project) return null;
-  const model = "gemini-2.5-flash";
+  const model = "gemini-3.6-flash";
   const res = await fetch(
     `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${model}:generateContent`,
     {
