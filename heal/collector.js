@@ -89,4 +89,4 @@ function startCollector(port, onIncident, opts = {}) {
   return new Promise((resolve) => server.listen(port, () => resolve(server)));
 }
 
-module.exports = { startCollector };
+module.exports = { startCollector, listIncidents };
