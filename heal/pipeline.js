@@ -16,6 +16,7 @@ const path = require("path");
 const { replayIncident } = require("./replay");
 const { loadKey, triggerReview } = require("./greptile");
 const { remember, recall, anchorOf, summarize } = require("./memory");
+const { visionCheck } = require("./vision");
 
 const say = (m) => console.log(m);
 
@@ -285,6 +286,19 @@ async function runPipeline(targetDir, incident, cfg) {
     }
     result.replayPassed = true;
     say("✓ original interaction now passes");
+
+    // Advisory only: a vision model compares what the user saw before vs
+    // after. It cannot grant or revoke VERIFIED — the replay invariant does.
+    const vision = await visionCheck(
+      path.join(artifacts, "before.png"),
+      path.join(artifacts, "after.png"),
+      renderFailure(incident.failure)
+    ).catch(() => null);
+    if (vision) {
+      result.vision = vision;
+      if (vision.looksFixed) say("✓ vision check (advisory): " + (vision.note || "the after-state visibly looks like success"));
+      else say("⚠ vision check (advisory): after-state does not visibly look fixed — " + (vision.note || "review the screenshots"));
+    }
 
     // --- guardrails ---
     if (cfg.test) {
