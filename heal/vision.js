@@ -73,8 +73,9 @@ async function geminiCheck(beforePng, afterPng, failureDescription) {
 async function vertexCheck(beforePng, afterPng, failureDescription) {
   let token, project;
   try {
-    token = execFileSync("gcloud", ["auth", "print-access-token"], { encoding: "utf8", timeout: 10000 }).trim();
-    project = execFileSync("gcloud", ["config", "get-value", "project"], { encoding: "utf8", timeout: 10000 }).trim();
+    const quiet = { encoding: "utf8", timeout: 10000, stdio: ["ignore", "pipe", "ignore"] };
+    token = execFileSync("gcloud", ["auth", "print-access-token"], quiet).trim();
+    project = execFileSync("gcloud", ["config", "get-value", "project"], quiet).trim();
   } catch {
     return null;
   }
