@@ -75,6 +75,8 @@ function renderFailure(f) {
   if (!f) return "unknown failure";
   if (f.kind === "http")
     return `${f.method} ${f.path} returned ${f.status}. Response preview: ${f.responsePreview || "n/a"}`;
+  if (f.kind === "friction")
+    return `Behavioral friction, no error thrown: users clicked ${f.selector}${f.text ? ` ("${f.text}")` : ""} ${f.clicks} times within seconds and nothing happened — ${f.note || "no request, no DOM change, no navigation"}. The feature is silently broken.`;
   return `Uncaught JS error: ${f.message}`;
 }
 

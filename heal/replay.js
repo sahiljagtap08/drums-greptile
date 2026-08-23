@@ -17,11 +17,17 @@ async function replayIncident(incident, baseURL) {
   });
   page.on("pageerror", (e) => pageErrors.push(String(e.message).slice(0, 300)));
 
+  const failure = incident.failure || {};
   const steps = [];
   try {
     await page.goto(baseURL + (incident.url || "/"), { waitUntil: "load", timeout: 15000 });
     steps.push(`open ${incident.url || "/"}`);
-    for (const step of incident.trace || []) {
+    const traceSteps = (incident.trace || []).filter(
+      // For a friction incident the repeated dead clicks are replayed as a
+      // measured probe below, not as ordinary steps.
+      (s) => !(failure.kind === "friction" && s.kind === "click" && s.selector === failure.selector)
+    );
+    for (const step of traceSteps) {
       if (step.kind === "fill" && step.selector) {
         const value = step.value === "•••" ? "redacted" : step.value;
         await page.fill(step.selector, value, { timeout: 8000 });
@@ -38,8 +44,46 @@ async function replayIncident(incident, baseURL) {
     return { completed: false, error: String(err.message).slice(0, 300), steps, responses, pageErrors };
   }
 
-  const failure = incident.failure || {};
   let originalFailureObserved = false;
+  if (failure.kind === "friction") {
+    // The measured probe: click the element the user fought with, and watch
+    // for ANY observable effect — a request, a DOM change, a navigation.
+    let effect;
+    try {
+      await page.evaluate(() => {
+        window.__drums_m = 0;
+        new MutationObserver((ms) => (window.__drums_m += ms.length)).observe(
+          document.documentElement,
+          { subtree: true, childList: true, attributes: true, characterData: true }
+        );
+      });
+      let probeRequests = 0;
+      const onReq = (r) => { if (["xhr", "fetch"].includes(r.resourceType())) probeRequests++; };
+      page.on("request", onReq);
+      const href0 = page.url();
+      for (let i = 0; i < 3; i++) {
+        await page.click(failure.selector, { timeout: 8000 });
+        await page.waitForTimeout(300);
+      }
+      steps.push(`click ${failure.selector} x3 (measured probe)`);
+      await page.waitForTimeout(1500);
+      page.off("request", onReq);
+      const m = await page.evaluate(() => window.__drums_m).catch(() => 0);
+      effect = { requests: probeRequests, domMutations: m, navigated: page.url() !== href0 };
+    } catch (err) {
+      await browser.close();
+      return { completed: false, error: String(err.message).slice(0, 300), steps, responses, pageErrors };
+    }
+    const effectObserved = effect.requests > 0 || effect.domMutations > 0 || effect.navigated;
+    originalFailureObserved = !effectObserved; // still dead = still failing
+    const otherFailures = responses
+      .filter((r) => r.status >= 500)
+      .map((r) => `${r.method} ${r.path} -> ${r.status}`)
+      .concat(pageErrors.map((e) => `pageerror: ${e}`));
+    const bodyText = await page.evaluate(() => document.body.innerText).catch(() => "");
+    await browser.close();
+    return { completed: true, originalFailureObserved, otherFailures, steps, responses, pageErrors, effect, pageText: bodyText.slice(0, 500) };
+  }
   if (failure.kind === "http") {
     originalFailureObserved = responses.some(
       (r) => r.method === failure.method && r.path === failure.path && r.status >= 500
