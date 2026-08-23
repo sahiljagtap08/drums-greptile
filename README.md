@@ -1,11 +1,22 @@
 # Drums — the product that improves itself
 
-**Greptile Fast Hackathon build.** A user hits a real failure in a web app.
-Nobody files a bug. Drums notices, converts what the user did into an
-executable reproduction, proves the failure reproduces against HEAD, hands the
-repair to **OpenAI Codex**, then independently boots the changed app, replays
-the exact same user interaction, and only says **VERIFIED** when the thing
-that failed for the user no longer fails.
+**Greptile Fast Hackathon build.** Drums is product intelligence that closes
+its own loop: it watches how real users behave, notices when the product is
+failing them, converts that into an executable reproduction, hands the repair
+to **OpenAI Codex**, then independently boots the changed app, replays the
+exact same user behavior, and only says **VERIFIED** when the thing that
+failed for the user no longer fails.
+
+Two incident classes, both live:
+
+1. **A hard failure.** A signup 500s on a plus-addressed email. Classic.
+2. **Behavioral friction, no error anywhere.** A user clicks a button three
+   times and nothing happens — no exception, no 500, nothing in any log.
+   Error tracking is blind here. Drums notices the *behavior* (repeated
+   clicks with no network request, no DOM change, no navigation), reproduces
+   "this click does nothing" against HEAD, and verifies the fix by proving
+   the same click now has an observable effect. Fixing thrown errors is
+   table stakes; noticing what never throws is product intelligence.
 
 ```
 user uses product
@@ -39,9 +50,11 @@ cd heal && npm install && npx playwright install chromium && cd ..
 node heal/cli.js watch fixture
 ```
 
-Then be the user: open http://localhost:3000, join the waitlist as
-`you+tag@gmail.com`, and watch the terminal. (Or script the user:
-`node heal/simulate-user.js`.) Replay a saved incident with
+Then be the user: open http://localhost:3000. For the hard failure, join the
+waitlist as `you+tag@gmail.com`. For the silent one, click "Get my invite
+code" a few times like a person who expects it to work. Watch the terminal.
+(Scripted users: `node heal/simulate-user.js` or
+`node heal/simulate-user.js invite`.) Replay a saved incident with
 `node heal/cli.js repair fixture .drums/incidents/<id>/incident.json`.
 
 ## Onboard any Node web app in under 5 minutes
