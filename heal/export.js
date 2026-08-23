@@ -23,7 +23,8 @@ const incidents = listIncidents(repoRoot).map((it) => ({
   state: it.state === "RUNNING" ? "INCONCLUSIVE" : it.state,
 }));
 fs.writeFileSync(path.join(out, "data.json"), JSON.stringify(incidents));
-fs.copyFileSync(path.join(__dirname, "dashboard.html"), path.join(out, "index.html"));
+fs.copyFileSync(path.join(__dirname, "entrance.html"), path.join(out, "index.html"));
+fs.copyFileSync(path.join(__dirname, "dashboard.html"), path.join(out, "console.html"));
 
 let shots = 0;
 for (const it of incidents) {

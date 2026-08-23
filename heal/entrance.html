@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>drums — the product that improves itself</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:#050607; --ink:#edeeef; --ink-soft:#a0a4a8; --ink-faint:#6b6f73;
+  --cream:#f2f0eb; --accent:#5cc8ff; --pine:#4ade80;
+  --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --sans:Manrope,"Segoe UI",system-ui,sans-serif;
+}
+* { box-sizing:border-box; }
+html { color-scheme:dark; }
+body {
+  margin:0; color:var(--ink); font:15px/1.65 var(--sans); -webkit-font-smoothing:antialiased;
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(1100px 640px at 78% -12%, rgba(92,200,255,.055), transparent 62%),
+    radial-gradient(900px 620px at -8% 108%, rgba(74,222,128,.035), transparent 60%),
+    linear-gradient(rgba(255,255,255,.013) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.013) 1px, transparent 1px);
+  background-size:auto, auto, 44px 44px, 44px 44px;
+  background-attachment:fixed;
+  min-height:100vh;
+}
+a { color:inherit; text-decoration:none; }
+::selection { background:color-mix(in srgb, var(--accent) 26%, transparent); color:var(--cream); }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+html,body{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4.5 2.5 L11 8.5' stroke='%23f2f0eb' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 2.5 L15 8.5' stroke='%23f2f0eb' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='4.5' cy='2.5' r='1.5' fill='%235cc8ff'/%3E%3Ccircle cx='21.5' cy='2.5' r='1.5' fill='%235cc8ff'/%3E%3Cpath d='M4 12.5 v6.5 a9 3.4 0 0 0 18 0 v-6.5' fill='%23101214' stroke='%23f2f0eb' stroke-width='1.4'/%3E%3Cpath d='M6.5 14.9 l2.6 4.6 M12 15.6 l2.6 4.4 M17.5 15.3 l2.4 4.2' stroke='%23f2f0eb' stroke-width='1.2' stroke-linecap='round'/%3E%3Cellipse cx='13' cy='12.5' rx='9' ry='3.4' fill='%23101214' stroke='%23f2f0eb' stroke-width='1.4'/%3E%3C/svg%3E") 3 3, auto}
+a,button{cursor:pointer}
+
+.label { font-family:var(--mono); font-weight:500; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+.wordmark { font-family:"Gloria Hallelujah",cursive; color:var(--cream); }
+.ds-panel {
+  border-radius:22px; border:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(180deg, #111419 0%, #0b0d10 100%);
+  box-shadow:0 40px 90px -32px rgba(0,0,0,.85), 0 4px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.ds-card {
+  border-radius:16px; border:1px solid rgba(255,255,255,.065);
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.014));
+  box-shadow:0 14px 34px -18px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.045);
+}
+.ds-well { border-radius:12px; border:1px solid rgba(255,255,255,.05); background:#07090b; }
+
+header { display:flex; align-items:center; gap:14px; padding:20px 32px; }
+header .wordmark { font-size:24px; }
+header nav { margin-left:auto; display:flex; gap:22px; font-size:13.5px; color:var(--ink-soft); }
+header nav a:hover { color:var(--ink); }
+
+.hero { max-width:880px; margin:0 auto; padding:72px 24px 40px; text-align:center; }
+.hero h1 { font:700 clamp(30px, 5vw, 44px)/1.15 var(--sans); color:var(--cream); letter-spacing:-.02em; margin:14px 0 16px; }
+.hero p { color:var(--ink-soft); font-size:16.5px; max-width:600px; margin:0 auto 32px; }
+.cta-row { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.btn {
+  display:inline-flex; align-items:center; gap:9px; padding:11px 20px; border-radius:10px;
+  font:600 14px var(--sans); border:1px solid rgba(255,255,255,.09); color:var(--ink);
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+}
+.btn:hover { border-color:rgba(255,255,255,.16); }
+.btn.primary { background:var(--cream); color:#0b0d10; border-color:transparent; }
+.btn.primary:hover { background:#fff; }
+.btn svg { width:16px; height:16px; }
+
+.strip { max-width:880px; margin:26px auto 0; display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:0 24px 80px; }
+@media (max-width:720px){ .strip{ grid-template-columns:1fr; } }
+.strip .ds-card { padding:18px 20px; text-align:left; }
+.strip .label { display:block; margin-bottom:6px; }
+.strip p { margin:0; color:var(--ink-soft); font-size:13.5px; }
+
+/* connect flow */
+#overlay { position:fixed; inset:0; background:rgba(3,4,5,.7); backdrop-filter:blur(6px); display:none; place-items:center; padding:20px; }
+#overlay.open { display:grid; }
+.modal { width:min(520px, 100%); padding:26px 28px; }
+.modal h3 { font:600 17px var(--sans); color:var(--cream); margin:0 0 4px; }
+.modal .sub { color:var(--ink-faint); font-size:13px; margin-bottom:18px; }
+.repo { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.065); margin-bottom:10px; background:rgba(255,255,255,.02); }
+.repo:hover { border-color:rgba(255,255,255,.16); }
+.repo .name { font:500 13px var(--mono); color:var(--ink); }
+.repo .desc { color:var(--ink-faint); font-size:12px; }
+.repo .go { margin-left:auto; color:var(--accent); font-size:12.5px; }
+.chip { display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:6px;
+  font:500 9.5px/1.4 var(--mono); letter-spacing:.09em; text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.09); color:var(--pine); background:rgba(255,255,255,.03); }
+.chip::before { content:""; width:5px; height:5px; border-radius:50%; background:currentColor; }
+.snip { font:12px/1.7 var(--mono); color:var(--ink-soft); padding:13px 16px; overflow-x:auto; white-space:pre; margin:0 0 16px; }
+.steps-dots { display:flex; gap:6px; margin-bottom:18px; }
+.steps-dots i { width:22px; height:3px; border-radius:2px; background:rgba(255,255,255,.09); }
+.steps-dots i.on { background:var(--accent); }
+.modal .row { display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
+.modal .ghost { color:var(--ink-faint); font-size:12.5px; background:none; border:none; font-family:var(--sans); }
+.modal .ghost:hover { color:var(--ink-soft); }
+footer { text-align:center; color:var(--ink-faint); font-size:12.5px; padding:0 0 40px; }
+footer a { color:var(--ink-soft); border-bottom:1px solid rgba(255,255,255,.16); }
+footer a:hover { color:var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <span class="wordmark">drums</span>
+  <nav>
+    <a href="console.html">Incident console</a>
+    <a href="https://github.com/sahiljagtap08/drums-greptile" target="_blank">GitHub</a>
+    <a href="https://drums.sh" target="_blank">drums.sh</a>
+  </nav>
+</header>
+
+<div class="hero">
+  <span class="label">greptile fast hackathon build</span>
+  <h1>The product that improves itself.</h1>
+  <p>Drums watches how real users behave, notices when your product fails them — even when nothing throws an error — reproduces it, has a coding agent repair it, and refuses to say fixed until the same user behavior actually succeeds.</p>
+  <div class="cta-row">
+    <button class="btn primary" onclick="openFlow()">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      Connect GitHub
+    </button>
+    <a class="btn" href="console.html">View the live incident record</a>
+  </div>
+</div>
+
+<div class="strip">
+  <div class="ds-card"><span class="label">notices</span><p>One snippet. Errors, 5xx responses, and silent friction — rage clicks that never touch a log — become incidents with full evidence.</p></div>
+  <div class="ds-card"><span class="label">repairs</span><p>Every incident is reproduced against HEAD in an isolated worktree, then handed to a coding agent with the evidence and the product's memory.</p></div>
+  <div class="ds-card"><span class="label">verifies</span><p>The exact user interaction is replayed against the rebooted candidate. Green tests are not enough. The user's failure has to be gone.</p></div>
+</div>
+
+<footer>every checkmark in the console is real execution · <a href="https://github.com/sahiljagtap08/drums-greptile" target="_blank">source</a></footer>
+
+<div id="overlay" onclick="if(event.target===this)closeFlow()">
+  <div class="modal ds-panel" id="modal"></div>
+</div>
+
+<script>
+let step = 0;
+const REPOS = [
+  { name: "sahiljagtap08/drums-greptile", desc: "waitloop fixture · watched today", live: true },
+  { name: "feedbackbox", desc: "onboarded from a stranger's repo in one command", live: true },
+];
+const dots = (n) => `<div class="steps-dots">${[0,1,2].map((i) => `<i class="${i<=n?"on":""}"></i>`).join("")}</div>`;
+
+function viewStep() {
+  const m = document.getElementById("modal");
+  if (step === 0) m.innerHTML = `${dots(0)}
+    <h3>Pick the repositories Drums should watch</h3>
+    <div class="sub">In the hosted product this list comes from the Drums GitHub App.</div>
+    ${REPOS.map((r) => `<div class="repo" onclick="step=1;viewStep()">
+      <div><div class="name">${r.name}</div><div class="desc">${r.desc}</div></div>
+      ${r.live ? '<span class="chip">watching</span>' : ""}<span class="go">select →</span>
+    </div>`).join("")}
+    <div class="row"><button class="ghost" onclick="closeFlow()">cancel</button></div>`;
+  if (step === 1) m.innerHTML = `${dots(1)}
+    <h3>Install the capture snippet</h3>
+    <div class="sub">Two lines in your page. Passwords and secret-shaped fields are redacted at the source.</div>
+    <pre class="ds-well snip">&lt;script&gt;window.__DRUMS_COLLECTOR__ = "https://collector.drums.sh"&lt;/script&gt;
+&lt;script src="https://collector.drums.sh/snippet.js"&gt;&lt;/script&gt;</pre>
+    <div class="row"><button class="ghost" onclick="step=0;viewStep()">back</button>
+    <button class="btn primary" onclick="step=2;viewStep()">Done, start watching</button></div>`;
+  if (step === 2) m.innerHTML = `${dots(2)}
+    <h3>Drums is watching</h3>
+    <div class="sub">From here every incident — captured, reproduced, repaired, verified — lands in the console. This record is real: every entry came from actual execution today.</div>
+    <div class="row"><button class="ghost" onclick="closeFlow()">close</button>
+    <a class="btn primary" href="console.html">Open the incident console</a></div>`;
+}
+function openFlow() { step = 0; viewStep(); document.getElementById("overlay").classList.add("open"); }
+function closeFlow() { document.getElementById("overlay").classList.remove("open"); }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeFlow(); });
+</script>
+</body>
+</html>
