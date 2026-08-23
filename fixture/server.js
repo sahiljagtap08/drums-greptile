@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       try {
         const { email } = JSON.parse(body);
-        const domain = email.match(/^([a-z0-9.]+)@([a-z0-9.]+)$/)[2];
+        const domain = email.match(/^([a-z0-9.+]+)@([a-z0-9.]+)$/)[2];
         signups.push({ email, domain, at: Date.now() });
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify({ ok: true, domain }));
