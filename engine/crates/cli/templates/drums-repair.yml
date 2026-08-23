@@ -1,0 +1,230 @@
+# Drums repair runner.
+#
+# This is the execution plane from docs/RUNNER.md: Drums decides that a repair
+# is needed, and THIS runs it — on your infrastructure, with your credentials,
+# against your code. Nothing in your repository is sent to Drums. What comes
+# back is the record: claims about what was checked, and what was found.
+#
+# ## Why this file lives in your repository rather than being injected
+#
+# The Drums GitHub App deliberately does NOT request `Workflows: write`. It
+# cannot edit this file, or any other file under .github/workflows. That means
+# the answer to "can this vendor change our CI" is no, and it stays no — the
+# cost is that you commit this yourself, once.
+#
+# ## Why there is no Drums token in here
+#
+# The outcome is uploaded as a build artifact. Drums learns the run finished
+# from GitHub's own webhook and fetches that artifact as the App, so the result
+# is bound to a run id GitHub told us about rather than one a caller claimed.
+# There is no Drums credential in your CI to leak, and no endpoint of ours that
+# a compromised workflow could post a forged outcome to.
+
+name: Drums repair
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: The repair job, issued by Drums.
+        required: true
+      failure_id:
+        description: The failure being repaired.
+        required: true
+      rev:
+        description: The commit the failure was attributed to. The repair is produced HERE.
+        required: true
+      acceptance:
+        description: JSON array of what the repair has to make true.
+        required: false
+        default: "[]"
+
+# Least privilege, stated rather than inherited.
+#
+# id-token: write does NOT grant access to anything of yours. It lets this job
+# ask GitHub for a short-lived token that states which repository, workflow and
+# run it belongs to — which is how it proves its identity to Drums without any
+# long-lived secret living in your CI.
+#
+# contents: write exists for exactly one step below: pushing the repair's own
+# `drums/…` branch after the outcome says the repair was verified, so the
+# commit that passed your acceptance criteria survives the runner and can
+# become a pull request. The push step refuses any other branch name, nothing
+# here force-pushes, and your default branch is protected by the same branch
+# protection it always had. The pull request itself is opened by the Drums
+# App, not by this token — a PR opened by a workflow's own token would never
+# trigger your CI, and a fix nobody's checks ran on is not a proposal.
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  # One repair per failure at a time. A second dispatch for the same failure
+  # replaces a queued one rather than racing it into a conflicting branch.
+  group: drums-repair-${{ inputs.failure_id }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the failing revision
+        uses: actions/checkout@v4
+        with:
+          # The exact commit the failure was attributed to — not the branch
+          # head. Repairing against newer code produces a patch for a program
+          # that is not the one that failed.
+          ref: ${{ inputs.rev }}
+          # Needed so the repair can be committed onto a branch from here.
+          fetch-depth: 0
+
+      - name: Install Drums
+        run: |
+          curl -fsSL https://drums.sh/install | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install the coding agent
+        # `drums repair` drives the agent CLI your team already uses, and a
+        # fresh runner has none on PATH — a credential alone repairs nothing.
+        # Installed only when its credential is present in your repository
+        # secrets; with none set, this prints what is missing and the repair
+        # step records the same, honestly, instead of failing cryptically.
+        # The first real approved repair failed exactly here: token present,
+        # no CLI installed, "no repair" in eight milliseconds.
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          AMP_API_KEY: ${{ secrets.AMP_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}${ANTHROPIC_API_KEY:-}" ]; then
+            npm install -g @anthropic-ai/claude-code
+            claude --version
+          elif [ -n "${OPENAI_API_KEY:-}" ]; then
+            npm install -g @openai/codex
+            codex --version
+          elif [ -n "${GEMINI_API_KEY:-}" ]; then
+            npm install -g @google/gemini-cli
+            gemini --version
+          elif [ -n "${CURSOR_API_KEY:-}" ]; then
+            curl -fsS https://cursor.com/install | bash
+            # Steps do not share env; the repair step needs the same PATH.
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            "$HOME/.local/bin/cursor-agent" --version
+          elif [ -n "${AMP_API_KEY:-}" ]; then
+            npm install -g @sourcegraph/amp
+            amp --version
+          else
+            echo "no agent credential in repository secrets — the repair step will say so"
+          fi
+
+      - name: Fetch the repair instruction
+        # The instruction carries the failure signature and the captured
+        # request — the material needed to reproduce. It is fetched here rather
+        # than passed as a workflow input, because inputs are displayed in the
+        # Actions UI and stored in run metadata, and an error message or a
+        # request body can contain personal data.
+        #
+        # Authentication is GitHub's own OIDC. The token below is minted by
+        # GitHub for THIS run, states which repository and run it belongs to,
+        # and is verified against GitHub's public keys. Drums checks both
+        # claims: another repository cannot read this, and neither can another
+        # workflow in the same repository — which matters, because anybody who
+        # can open a pull request can run a workflow here.
+        #
+        # It is collected exactly once. A second call is refused.
+        run: |
+          set -euo pipefail
+          OIDC=$(curl -fsSL \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://app.drums.sh" \
+            | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"])')
+
+          curl -fsSL -X POST https://app.drums.sh/api/repairs/instruction \
+            -H "Authorization: Bearer $OIDC" \
+            -H 'content-type: application/json' \
+            -d "{\"job_id\":\"${{ inputs.job_id }}\",\"run_id\":\"${{ github.run_id }}\"}" \
+            -o drums-instruction.json
+
+          # Never echoed. It contains the failing request.
+          test -s drums-instruction.json
+
+      - name: Repair
+        id: repair
+        env:
+          # YOUR agent credential, from YOUR repository secrets. Drums never
+          # sees it, never asks for it, and cannot read it — the App has no
+          # secrets permission. Set whichever your team already uses.
+          #
+          # This one first, deliberately. A runner has no agent CLI logged
+          # into it, and the honest answer to "so I need an API key?" is no:
+          # `claude setup-token` mints a token against the subscription you
+          # already pay for. Reach for a metered key only if you have one.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DRUMS_PLAIN: "1"
+        run: |
+          set -euo pipefail
+          # `drums repair`, not `drums watch`. watch is a daemon that binds a
+          # port and ingests events; none of that applies in a runner. The
+          # instruction file is fetched by the previous step and carries the
+          # failure and the attribution, both already decided by the machine
+          # that detected them.
+          drums repair \
+            --input drums-instruction.json \
+            --outcome-file drums-outcome.json
+        continue-on-error: true
+
+      - name: Record that nothing was established
+        # A repair that crashed, timed out, or never wrote a file must not be
+        # silently absent. An outcome with no claims is `unresolved`, which the
+        # ship gate refuses — that is the correct answer, and it is different
+        # from "no answer".
+        if: always()
+        run: |
+          if [ ! -f drums-outcome.json ]; then
+            cat > drums-outcome.json <<'JSON'
+          {
+            "job_id": "${{ inputs.job_id }}",
+            "repaired": false,
+            "claims": [],
+            "failure_reason": "the repair step did not produce an outcome file — nothing was established about whether a repair would have worked"
+          }
+          JSON
+          fi
+
+      - name: Push the verified branch
+        # Only when the outcome says the repair was verified, and only a
+        # branch named drums/… — the branch `drums repair` itself created.
+        # The commit pushed is the exact commit the acceptance criteria ran
+        # against; Drums re-reads the branch head from GitHub and refuses to
+        # open a pull request from anything that does not match the sha in
+        # the outcome artifact.
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f drums-outcome.json ] || exit 0
+          REPAIRED=$(jq -r '.repaired // false' drums-outcome.json)
+          BRANCH=$(jq -r '.branch // empty' drums-outcome.json)
+          if [ "$REPAIRED" = "true" ] && [ -n "$BRANCH" ]; then
+            case "$BRANCH" in
+              drums/*) git push origin "refs/heads/$BRANCH" ;;
+              *) echo "refusing to push non-drums branch: $BRANCH" ;;
+            esac
+          fi
+
+      - name: Upload the outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Drums looks for exactly this name when the run completes.
+          name: drums-outcome
+          path: drums-outcome.json
+          retention-days: 7
+          if-no-files-found: error

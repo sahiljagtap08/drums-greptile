@@ -1,0 +1,58 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.89"
+license = "LicenseRef-Proprietary"
+
+[workspace.dependencies]
+engine-core = { path = "crates/core" }
+engine-ingest = { path = "crates/ingest" }
+engine-detect = { path = "crates/detect" }
+engine-recall = { path = "crates/recall" }
+engine-attribute = { path = "crates/attribute" }
+engine-repro = { path = "crates/repro" }
+engine-record = { path = "crates/record" }
+engine-repair = { path = "crates/repair" }
+engine-check = { path = "crates/check" }
+engine-propose = { path = "crates/propose" }
+engine-track = { path = "crates/track" }
+engine-authority = { path = "crates/authority" }
+engine-plane = { path = "crates/plane" }
+engine-behavior = { path = "crates/behavior" }
+engine-semantic = { path = "crates/semantic" }
+
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "process", "signal", "sync", "time", "io-util", "fs"] }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+# `raw_value` exists for one consumer: record sync (`crates/cli/src/sync.rs`),
+# which must send stored record lines byte-for-byte — a parse-and-reserialise
+# round trip could reorder keys, and the privacy invariant there is pinned to
+# the exact stored bytes.
+serde_json = { version = "1", features = ["raw_value"] }
+clap = { version = "4", features = ["derive"] }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+async-trait = "0.1"
+ulid = "1"
+tempfile = "3"
+libc = "0.2"
+# Offline license verification (`engine/crates/cli/src/license.rs`). Default
+# features only: verifying a signature needs no randomness, no allocator
+# feature, and — the whole point — no network.
+ed25519-dalek = "3"
+base64 = "0.22"
+# OS entropy, used in exactly one place: minting a fresh issuing keypair
+# (`license::generate_issuing_keypair`). Verification never needs it.
+getrandom = "0.3"
+ratatui = "0.29"
+crossterm = "0.28"
+toml = "0.8"
+# The semantic index (`engine-semantic`): a rebuildable graph + vector store
+# over the record. Bundled so the public binary needs no system SQLite.
+rusqlite = { version = "0.32", features = ["bundled"] }

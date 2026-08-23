@@ -1,0 +1,15 @@
+[package]
+name = "engine-detect"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+engine-core = { workspace = true }
+serde_json = { workspace = true }
+ulid = { workspace = true }
+
+[dev-dependencies]
+engine-record = { path = "../record" }
+tempfile = { workspace = true }
