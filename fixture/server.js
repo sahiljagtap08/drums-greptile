@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
   if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
     const html = fs
       .readFileSync(path.join(__dirname, "index.html"), "utf8")
-      .replace("__DRUMS_COLLECTOR__", process.env.DRUMS_COLLECTOR || "");
+      .replace("%%COLLECTOR%%", process.env.DRUMS_COLLECTOR || "");
     res.writeHead(200, { "content-type": "text/html" });
     res.end(html);
     return;

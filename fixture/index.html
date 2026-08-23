@@ -25,9 +25,9 @@
     <button id="join">Join waitlist</button>
     <div id="msg"></div>
   </div>
-  <script>window.__DRUMS_COLLECTOR__ = "__DRUMS_COLLECTOR__";</script>
+  <script>window.__DRUMS_COLLECTOR__ = "%%COLLECTOR%%";</script>
   <script>
-    if (window.__DRUMS_COLLECTOR__ && !window.__DRUMS_COLLECTOR__.startsWith("__"))
+    if (window.__DRUMS_COLLECTOR__ && window.__DRUMS_COLLECTOR__.indexOf("%%") === -1)
       document.write('<script src="' + window.__DRUMS_COLLECTOR__ + '/snippet.js"><\/script>');
   </script>
   <script>
