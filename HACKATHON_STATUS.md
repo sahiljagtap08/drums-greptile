@@ -20,13 +20,23 @@ Proven by execution on 2026-08-23, incident 2026-08-23T21-20-02-o23v
 - Verification: candidate app rebooted on a fresh port, same replay, guardrail
   tests. verdict() enforces: VERIFIED = reproduced ∧ diff ∧ replayPassed ∧
   guardrails. Codex's own "fixed" claim has zero authority.
-- Distinct outcomes: FAILED, INCONCLUSIVE, REGRESSION_FOUND.
+- Distinct outcomes: FAILED, INCONCLUSIVE, REGRESSION_FOUND (all five
+  sabotage drills refused correctly).
+- Friction incidents: dead/rage clicks with zero telemetry are detected from
+  behavior (no request, no DOM change, no navigation) and verified by a
+  measured click probe.
+- Memory: every incident is remembered (.drums/memory.jsonl); new incidents
+  recall related history and brief Codex with it.
+- Evidence: before/after screenshots of what the user saw, plus an advisory
+  vision check on the after-state (never the verdict authority).
+- Verified repairs open a PR and get an independent Greptile review
+  (PR #1 merged with a 5/5 review; #2 and #3 reviewed and open).
 
 ## CURRENT BLOCKER
 None.
 
 ## NEXT ACTION
-Finish failure drills; then onboard a stranger's repo at the venue.
+Onboard a stranger's repo at the venue (see ONBOARDING.md).
 
 ## EXACT DEMO COMMAND
     node heal/cli.js watch fixture
