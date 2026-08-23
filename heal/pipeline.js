@@ -176,6 +176,13 @@ async function runPipeline(targetDir, incident, cfg) {
     remembered.forEach((l) => say("  " + l));
     say("");
   }
+  result.memory = remembered;
+  const mark = (s) => {
+    result.state = s;
+    try {
+      fs.writeFileSync(path.join(artifacts, "status.json"), JSON.stringify({ state: s, memory: remembered, at: Date.now() }));
+    } catch {}
+  };
 
   // --- isolated workspace at HEAD ---
   const wtRoot = fs.mkdtempSync(path.join(os.tmpdir(), "drums-wt-"));
@@ -188,7 +195,7 @@ async function runPipeline(targetDir, incident, cfg) {
 
   try {
     // --- reproduce against HEAD ---
-    result.state = "REPRODUCING";
+    mark("REPRODUCING");
     say("Reproducing against HEAD (isolated worktree)...");
     if (cfg.install) execFileSync("sh", ["-c", cfg.install], { cwd: projectDir, stdio: "ignore" });
     const portA = await freePort();
@@ -207,12 +214,12 @@ async function runPipeline(targetDir, incident, cfg) {
       return verdict();
     }
     result.reproduced = true;
-    result.state = "REPRODUCED";
+    mark("REPRODUCED");
     say("✓ original failure reproduced against HEAD");
     say("");
 
     // --- repair with Codex ---
-    result.state = "REPAIRING";
+    mark("REPAIRING");
     say("Repairing with Codex (isolated worktree, workspace-write sandbox)...");
     const prompt = [
       "You are repairing a web application. A real user hit a failure in production. Nobody filed a bug; this evidence was captured from the user's browser.",
@@ -252,14 +259,14 @@ async function runPipeline(targetDir, incident, cfg) {
     result.diffNonEmpty = true;
     result.diffStat = git(wtRoot, "diff", "--stat").trim();
     result.filesChanged = numstat.split("\n").map((l) => l.split("\t")[2]).filter(Boolean);
-    result.state = "CANDIDATE_READY";
+    mark("CANDIDATE_READY");
     let add = 0, del = 0;
     numstat.split("\n").forEach((l) => { const [a, d] = l.split("\t"); add += +a || 0; del += +d || 0; });
     say(`✓ patch generated (+${add} -${del} across ${numstat.split("\n").length} file(s))`);
     say("");
 
     // --- verify: reboot the changed app, replay the SAME evidence ---
-    result.state = "VERIFYING";
+    mark("VERIFYING");
     say("Restarting candidate app from the changed worktree...");
     const portB = await freePort();
     app = bootApp(projectDir, cfg.start, portB);

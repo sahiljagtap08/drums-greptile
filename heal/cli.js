@@ -48,6 +48,9 @@ async function main() {
   process.on("exit", () => { try { process.kill(-prod.pid, "SIGKILL"); } catch {} });
   process.on("SIGINT", () => process.exit(0));
 
+  const { execFileSync } = require("child_process");
+  const repoRoot = execFileSync("git", ["-C", targetDir, "rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+
   let busy = false;
   await startCollector(COLLECTOR_PORT, async (incident) => {
     if (busy) { console.log("(incident received while a repair is running — ignored)"); return; }
@@ -61,9 +64,9 @@ async function main() {
     } finally {
       busy = false;
     }
-  });
+  }, { repoRoot });
 
-  console.log(`drums is watching  →  app: http://localhost:${prodPort}${cfg.app || "/"}   collector: :${COLLECTOR_PORT}`);
+  console.log(`drums is watching  →  app: http://localhost:${prodPort}${cfg.app || "/"}   console: http://localhost:${COLLECTOR_PORT}`);
   console.log("Use the app like a real user. If something fails for you, drums will notice.");
 }
 
