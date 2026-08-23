@@ -297,8 +297,9 @@ async function runPipeline(targetDir, incident, cfg) {
     ).catch(() => null);
     if (vision) {
       result.vision = vision;
-      if (vision.looksFixed) say("✓ vision check (advisory): " + (vision.note || "the after-state visibly looks like success"));
-      else say("⚠ vision check (advisory): after-state does not visibly look fixed — " + (vision.note || "review the screenshots"));
+      const who = vision.model ? ` (${vision.model}, advisory)` : " (advisory)";
+      if (vision.looksFixed) say("✓ vision check" + who + ": " + (vision.note || "the after-state visibly looks like success"));
+      else say("⚠ vision check" + who + ": after-state does not visibly look fixed — " + (vision.note || "review the screenshots"));
     }
 
     // --- guardrails ---
