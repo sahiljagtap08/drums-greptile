@@ -26,9 +26,6 @@ const server = http.createServer((req, res) => {
     req.on("end", () => {
       try {
         const { email } = JSON.parse(body);
-        // BUG: this regex has no "+" (or uppercase) in the local part, so a
-        // plus-addressed email like sahil+test@gmail.com makes match() return
-        // null and reading [2] throws — the user gets a 500.
         const domain = email.match(/^([a-z0-9.]+)@([a-z0-9.]+)$/)[2];
         signups.push({ email, domain, at: Date.now() });
         res.writeHead(200, { "content-type": "application/json" });
