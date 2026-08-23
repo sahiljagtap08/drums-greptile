@@ -24,6 +24,10 @@
     <input id="email" name="email" type="email" placeholder="you@company.com">
     <button id="join">Join waitlist</button>
     <div id="msg"></div>
+    <hr style="border:0;border-top:1px solid #26262a;margin:20px 0 16px">
+    <p style="margin-bottom:12px">Already invited? Grab your access code.</p>
+    <button id="invite" style="background:#26262a;color:#ededed">Get my invite code</button>
+    <div id="code" style="margin-top:12px;font-size:13px;color:#6bffb0"></div>
   </div>
   <script>window.__DRUMS_COLLECTOR__ = "%%COLLECTOR%%";</script>
   <script>
@@ -46,6 +50,13 @@
       } catch (e) {
         msg.textContent = "Something went wrong. Try again later."; msg.className = "err";
       }
+    });
+
+    var inviteBtn = document.getElementById("invite-button");
+    if (inviteBtn) inviteBtn.addEventListener("click", async () => {
+      const r = await fetch("/api/invite");
+      const d = await r.json();
+      document.getElementById("code").textContent = "Your code: " + d.code;
     });
   </script>
 </body>

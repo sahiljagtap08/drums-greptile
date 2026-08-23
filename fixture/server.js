@@ -15,6 +15,11 @@ const server = http.createServer((req, res) => {
     res.end(html);
     return;
   }
+  if (req.method === "GET" && req.url === "/api/invite") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ code: "DRUMS-" + Math.random().toString(36).slice(2, 8).toUpperCase() }));
+    return;
+  }
   if (req.method === "GET" && req.url === "/api/health") {
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
