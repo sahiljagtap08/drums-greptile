@@ -1,0 +1,7 @@
+{
+  "install": "",
+  "start": "node server.js",
+  "health": "/api/health",
+  "app": "/",
+  "test": "node test.js"
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Waitloop</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #0d0d0f; color: #ededed;
+           display: grid; place-items: center; min-height: 100vh; margin: 0; }
+    .card { width: 340px; padding: 32px; border: 1px solid #26262a; border-radius: 12px; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p { color: #9a9aa2; font-size: 14px; margin: 0 0 20px; }
+    input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 8px;
+            border: 1px solid #33333a; background: #17171a; color: #ededed; font-size: 14px; }
+    button { margin-top: 12px; width: 100%; padding: 10px; border-radius: 8px; border: 0;
+             background: #ededed; color: #111; font-weight: 600; font-size: 14px; cursor: pointer; }
+    #msg { margin-top: 14px; font-size: 13px; min-height: 18px; }
+    .err { color: #ff6b6b; } .ok { color: #6bffb0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Join the waitlist</h1>
+    <p>Drop your email and we will save you a seat.</p>
+    <input id="email" name="email" type="email" placeholder="you@company.com">
+    <button id="join">Join waitlist</button>
+    <div id="msg"></div>
+  </div>
+  <script>window.__DRUMS_COLLECTOR__ = "__DRUMS_COLLECTOR__";</script>
+  <script>
+    if (window.__DRUMS_COLLECTOR__ && !window.__DRUMS_COLLECTOR__.startsWith("__"))
+      document.write('<script src="' + window.__DRUMS_COLLECTOR__ + '/snippet.js"><\/script>');
+  </script>
+  <script>
+    document.getElementById("join").addEventListener("click", async () => {
+      const msg = document.getElementById("msg");
+      msg.textContent = "";
+      try {
+        const r = await fetch("/api/signup", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email: document.getElementById("email").value }),
+        });
+        const data = await r.json();
+        if (!r.ok) { msg.textContent = "Something went wrong. Try again later."; msg.className = "err"; }
+        else { msg.textContent = "You are on the list (" + data.domain + ")."; msg.className = "ok"; }
+      } catch (e) {
+        msg.textContent = "Something went wrong. Try again later."; msg.className = "err";
+      }
+    });
+  </script>
+</body>
+</html>
