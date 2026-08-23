@@ -46,9 +46,11 @@ if (respectsPort || scripts.dev) ok("app looks PORT-aware (or framework dev serv
 else warn("could not find process.env.PORT — if the app hardcodes its port, isolated candidates cannot boot. Fix that first.");
 
 // snippet injection into an HTML entry
+// The collector runs beside the app, so address it via the page's own host:
+// works on the laptop (localhost) AND from another device on the venue LAN.
 const SNIPPET = [
-  '<script>window.__DRUMS_COLLECTOR__ = "http://localhost:4600"</script>',
-  '<script src="http://localhost:4600/snippet.js"></script>',
+  '<script>window.__DRUMS_COLLECTOR__ = location.protocol + "//" + location.hostname + ":4600"</script>',
+  '<script>document.write(\'<script src="\' + window.__DRUMS_COLLECTOR__ + \'/snippet.js"><\\/script>\')</script>',
 ].join("\n");
 const candidates = [];
 for (const dir of ["", "public", "src", "static", "views"]) {
