@@ -2,3 +2,4 @@ node_modules/
 .drums/
 .env.local
 engine/target/
+site/
