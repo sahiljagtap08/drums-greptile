@@ -99,6 +99,7 @@ function codexRepair(projectDir, prompt, timeoutMs = 600000) {
 }
 
 async function openCandidatePr(wtRoot, repoRoot, id, incident, result) {
+  if (process.env.DRUMS_NO_PR) return; // rehearsal mode: verdict only, no PR
   const key = loadKey(repoRoot);
   if (!key) return; // no Greptile key, no PR step
   const origin = git(repoRoot, "config", "--get", "remote.origin.url").trim();
