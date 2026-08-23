@@ -7,8 +7,15 @@ const { listIncidents } = require("./collector");
 
 const repoRoot = path.join(__dirname, "..");
 const out = path.join(repoRoot, "site");
+// keep the Vercel project link across re-exports
+let vercelLink = null;
+try { vercelLink = fs.readFileSync(path.join(out, ".vercel", "project.json")); } catch {}
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
+if (vercelLink) {
+  fs.mkdirSync(path.join(out, ".vercel"), { recursive: true });
+  fs.writeFileSync(path.join(out, ".vercel", "project.json"), vercelLink);
+}
 
 const incidents = listIncidents(repoRoot).map((it) => ({
   ...it,
