@@ -38,8 +38,25 @@ async function main() {
 
   if (cmd !== "watch") { console.error("unknown command " + cmd); process.exit(1); }
 
+  const net = require("net");
+  const portFree = (p) => new Promise((resolve) => {
+    const s = net.createServer();
+    s.once("error", () => resolve(false));
+    s.listen(p, () => s.close(() => resolve(true)));
+  });
+
+  if (!(await portFree(COLLECTOR_PORT))) {
+    console.error(ui.c.red("✗") + ` port ${COLLECTOR_PORT} (the collector) is already in use.`);
+    console.error(ui.dim(`  free it with:  lsof -ti:${COLLECTOR_PORT} | xargs kill -9`));
+    process.exit(1);
+  }
+
   // production instance, instrumented with the capture snippet
-  const prodPort = cfg.port || 3000;
+  let prodPort = cfg.port || 3000;
+  for (let tries = 0; !(await portFree(prodPort)) && tries < 10; tries++) {
+    if (tries === 0) console.log(ui.c.yellow("⚠") + ` port ${prodPort} is busy, sliding to the next free port`);
+    prodPort++;
+  }
   const prod = spawn("sh", ["-c", cfg.start], {
     cwd: targetDir,
     env: { ...process.env, PORT: String(prodPort), DRUMS_COLLECTOR: `http://localhost:${COLLECTOR_PORT}` },
