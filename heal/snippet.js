@@ -30,9 +30,39 @@
     if (trace.length > 50) trace.shift();
   }
 
+  // Behavioral friction: a click on an interactive element that produces no
+  // network request, no DOM change, and no navigation is a dead click. Three
+  // of those on the same element within seconds is a user fighting a silently
+  // broken feature — no error will ever fire, but the product is failing them.
+  var mutations = 0;
+  try {
+    new MutationObserver(function (ms) { mutations += ms.length; })
+      .observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+  } catch (e) {}
+  var requestCount = 0;
+  var deadClicks = {};
+
   document.addEventListener("click", function (e) {
     var el = e.target.closest ? (e.target.closest("button,a,[role=button],input[type=submit]") || e.target) : e.target;
-    push({ kind: "click", selector: selectorFor(el), text: (el.textContent || "").trim().slice(0, 40) });
+    var sel = selectorFor(el);
+    var text = (el.textContent || "").trim().slice(0, 40);
+    push({ kind: "click", selector: sel, text: text });
+    var interactive = el.matches && el.matches("button,a,[role=button],input[type=submit]");
+    if (!interactive) return;
+    var m0 = mutations, r0 = requestCount, href0 = location.href;
+    setTimeout(function () {
+      if (mutations !== m0 || requestCount !== r0 || location.href !== href0) return; // the click did something
+      var now = Date.now();
+      var arr = (deadClicks[sel] || []).filter(function (t) { return now - t < 4000; });
+      arr.push(now);
+      deadClicks[sel] = arr;
+      if (arr.length >= 3) {
+        report({
+          kind: "friction", selector: sel, text: text, clicks: arr.length,
+          note: "repeated clicks produced no network request, no DOM change, no navigation, and no error",
+        });
+      }
+    }, 700);
   }, true);
 
   document.addEventListener("change", function (e) {
@@ -75,6 +105,7 @@
     var path;
     try { path = new URL(url, location.origin).pathname; } catch (e) { path = url; }
     var bodyPreview = init && typeof init.body === "string" ? init.body.slice(0, 500) : null;
+    requestCount++;
     push({ kind: "request", method: method, path: path, body: bodyPreview });
     return origFetch.apply(window, arguments).then(function (res) {
       if (res.status >= 500) {
