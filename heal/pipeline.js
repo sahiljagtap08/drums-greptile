@@ -14,6 +14,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { replayIncident } = require("./replay");
+const { loadKey, triggerReview } = require("./greptile");
 
 const say = (m) => console.log(m);
 
@@ -93,6 +94,51 @@ function codexRepair(projectDir, prompt, timeoutMs = 600000) {
     const timer = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} resolve({ ok: false, out, timedOut: true }); }, timeoutMs);
     child.on("exit", (code) => { clearTimeout(timer); resolve({ ok: code === 0, out, code }); });
   });
+}
+
+async function openCandidatePr(wtRoot, repoRoot, id, incident, result) {
+  const key = loadKey(repoRoot);
+  if (!key) return; // no Greptile key, no PR step
+  const origin = git(repoRoot, "config", "--get", "remote.origin.url").trim();
+  const m = origin.match(/github\.com[:/]+([^/]+\/[^/.]+)/);
+  if (!m) return;
+  const repoSlug = m[1];
+  const branch = `drums/heal-${id}`;
+  say("");
+  say("Opening candidate PR for independent review...");
+  git(wtRoot, "checkout", "-b", branch);
+  git(wtRoot, "add", "--all");
+  git(wtRoot, "commit", "-m", `drums: verified repair for incident ${id}`);
+  git(wtRoot, "push", "origin", branch);
+  const body = [
+    "Drums observed a real user failure, reproduced it against HEAD, had Codex repair it, and verified the repair by replaying the same user interaction against the rebooted candidate.",
+    "",
+    "**Failure:** " + renderFailure(incident.failure),
+    "",
+    "**What the user did:**",
+    "```",
+    renderTrace(incident) || "(no trace)",
+    "```",
+    "",
+    "**Verification:** original interaction now passes; guardrail tests pass.",
+    "**Incident artifacts:** `.drums/incidents/" + id + "` (local)",
+    "",
+    "Requesting a Greptile review as the independent code reviewer. A human decides the merge.",
+  ].join("\n");
+  const prUrl = execFileSync(
+    "gh",
+    ["pr", "create", "--repo", repoSlug, "--head", branch, "--base", "main",
+     "--title", "drums: verified repair (" + (incident.failure && incident.failure.kind) + ")",
+     "--body", body],
+    { encoding: "utf8", cwd: wtRoot }
+  ).trim().split("\n").pop();
+  result.prUrl = prUrl;
+  say("✓ candidate PR: " + prUrl);
+  const prNumber = Number((prUrl.match(/\/pull\/(\d+)/) || [])[1]);
+  if (prNumber) {
+    await triggerReview(key, { repoSlug, defaultBranch: "main", branch, prNumber });
+    say("✓ Greptile review requested on PR #" + prNumber);
+  }
 }
 
 async function runPipeline(targetDir, incident, cfg) {
@@ -190,6 +236,7 @@ async function runPipeline(targetDir, incident, cfg) {
       return verdict();
     }
     result.diffNonEmpty = true;
+    result.diffStat = git(wtRoot, "diff", "--stat").trim();
     result.state = "CANDIDATE_READY";
     let add = 0, del = 0;
     numstat.split("\n").forEach((l) => { const [a, d] = l.split("\t"); add += +a || 0; del += +d || 0; });
@@ -243,7 +290,14 @@ async function runPipeline(targetDir, incident, cfg) {
       result.guardrailsPassed = true; // no tests configured; replay + health are the bar
     }
 
-    return verdict();
+    verdict();
+    if (result.state === "VERIFIED") {
+      // Hand the verified candidate to Greptile as an independent reviewer.
+      await openCandidatePr(wtRoot, repoRoot, id, incident, result).catch((e) =>
+        say("  (PR / Greptile review skipped: " + String(e.message).slice(0, 200) + ")")
+      );
+    }
+    return result;
   } finally {
     cleanup();
     say("");
@@ -255,11 +309,11 @@ async function runPipeline(targetDir, incident, cfg) {
     }
     say("");
     say("Diff:");
-    const diffStat = (() => { try { return git(wtRoot, "diff", "--stat").trim(); } catch { return "(worktree gone)"; } })();
-    say(diffStat || "  (no change)");
+    say(result.diffStat || "  (no change)");
     say("");
     say("Artifacts: " + artifacts);
     say("Candidate worktree (for human review): " + projectDir);
+    if (result.prUrl) say("Candidate PR under Greptile review: " + result.prUrl);
     say(result.state === "VERIFIED" ? "Ready for human approval. Drums does not merge or deploy." : "No merge candidate.");
     fs.writeFileSync(path.join(artifacts, "result.json"), JSON.stringify(result, null, 2));
   }
