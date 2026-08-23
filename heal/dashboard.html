@@ -8,78 +8,88 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Gloria+Hallelujah&display=swap" rel="stylesheet">
 <style>
-/* tokens — same values as drums.sh */
+/* tokens — the console's palette, byte-for-byte from console/app/globals.css */
 :root {
-  --bg:#0a0b0d;
-  --panel-hi:#15181c; --panel-lo:#101215;
-  --card:rgba(255,255,255,.03);
-  --term:#0c0e11;
-  --ink:#eceef0; --ink-soft:#9ba1a6; --ink-faint:#6a7076;
+  --paper:#050607;
+  --ink:#edeeef; --ink-soft:#a0a4a8; --ink-faint:#6b6f73;
   --cream:#f2f0eb;
-  --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.05); --line-hi:rgba(255,255,255,.16);
-  --ok:#4ade80; --warn:#e8c268; --info:#7cc7f2; --bad:#ff8a7a;
+  --accent:#5cc8ff;            /* the one electric note */
+  --pine:#4ade80;              /* affirmative */
+  --bad:#f87171; --warn:#fcd34d;
   --mono:"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans:Manrope,"Segoe UI",system-ui,sans-serif;
 }
 * { box-sizing:border-box; }
-html { background:var(--bg); color-scheme:dark; }
-body { margin:0; background:var(--bg); color:var(--ink-soft); font:14px/1.6 var(--sans); -webkit-font-smoothing:antialiased; }
-body::before {
-  content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background:
-    radial-gradient(1100px 560px at 50% -12%, rgba(255,255,255,.055), transparent 62%),
-    radial-gradient(900px 520px at 82% 4%, rgba(74,222,128,.045), transparent 60%),
-    linear-gradient(rgba(255,255,255,.017) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.017) 1px, transparent 1px);
-  background-size:auto, auto, 56px 56px, 56px 56px;
-  mask-image:linear-gradient(#000 55%, rgba(0,0,0,.4));
-  -webkit-mask-image:linear-gradient(#000 55%, rgba(0,0,0,.4));
+html { color-scheme:dark; }
+body {
+  margin:0; color:var(--ink); font:14px/1.6 var(--sans); -webkit-font-smoothing:antialiased;
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(1100px 640px at 78% -12%, rgba(92,200,255,.055), transparent 62%),
+    radial-gradient(900px 620px at -8% 108%, rgba(74,222,128,.035), transparent 60%),
+    linear-gradient(rgba(255,255,255,.013) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.013) 1px, transparent 1px);
+  background-size:auto, auto, 44px 44px, 44px 44px;
+  background-attachment:fixed;
 }
 a { color:inherit; text-decoration:none; }
-::selection { background:rgba(74,222,128,.24); color:var(--cream); }
+::selection { background:color-mix(in srgb, var(--accent) 26%, transparent); color:var(--cream); }
+:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
 html,body{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4.5 2.5 L11 8.5' stroke='%23f2f0eb' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 2.5 L15 8.5' stroke='%23f2f0eb' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='4.5' cy='2.5' r='1.5' fill='%235cc8ff'/%3E%3Ccircle cx='21.5' cy='2.5' r='1.5' fill='%235cc8ff'/%3E%3Cpath d='M4 12.5 v6.5 a9 3.4 0 0 0 18 0 v-6.5' fill='%23101214' stroke='%23f2f0eb' stroke-width='1.4'/%3E%3Cpath d='M6.5 14.9 l2.6 4.6 M12 15.6 l2.6 4.4 M17.5 15.3 l2.4 4.2' stroke='%23f2f0eb' stroke-width='1.2' stroke-linecap='round'/%3E%3Cellipse cx='13' cy='12.5' rx='9' ry='3.4' fill='%23101214' stroke='%23f2f0eb' stroke-width='1.4'/%3E%3C/svg%3E") 3 3, auto}
 a,button,[role="button"]{cursor:pointer}
 
 /* voice */
-.kicker { font:500 10.5px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint); }
-h1,h2,h3 { font-family:var(--sans); color:var(--ink); margin:0; }
+.label { font-family:var(--mono); font-weight:500; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
 .wordmark { font-family:"Gloria Hallelujah",cursive; font-size:22px; line-height:1; color:var(--cream); transform:translateY(-2px); display:inline-block; }
 .num { font-variant-numeric:tabular-nums; }
 
+/* chips: quiet mono facts — a dot, a label, no glow */
 .chip {
-  display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px;
-  font:500 9.5px/1 var(--mono); letter-spacing:.09em; text-transform:uppercase;
-  white-space:nowrap; border:1px solid var(--line); color:var(--ink-soft);
-  background:#101316; box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.35);
+  display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:6px;
+  font:500 9.5px/1.4 var(--mono); letter-spacing:.09em; text-transform:uppercase;
+  white-space:nowrap; border:1px solid rgba(255,255,255,.09); color:var(--ink-soft);
+  background:rgba(255,255,255,.03);
 }
 .chip::before { content:""; width:5px; height:5px; border-radius:50%; background:currentColor; flex:none; }
-.chip-VERIFIED { color:#8ce0ac; }
+.chip-VERIFIED { color:var(--pine); }
 .chip-FAILED, .chip-REGRESSION_FOUND { color:var(--bad); }
-.chip-INCONCLUSIVE { color:#ecd08b; }
-.chip-RUNNING { color:#9bd2f4; }
+.chip-INCONCLUSIVE { color:var(--warn); }
+.chip-RUNNING { color:var(--accent); }
 .chip-RUNNING::before { animation:pulse 1.2s ease-in-out infinite; }
+.chip-dim { color:var(--ink-faint); }
 @keyframes pulse { 50% { opacity:.25; } }
+@media (prefers-reduced-motion: reduce){ *{ animation-duration:.01ms!important; } }
 
-.panel {
-  background:linear-gradient(180deg, var(--panel-hi), var(--panel-lo));
-  border:1px solid var(--line); border-radius:16px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.3), 0 18px 48px rgba(0,0,0,.42);
+/* elevation — the console's depth system, copied not approximated */
+.ds-panel {
+  border-radius:22px; border:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(180deg, #111419 0%, #0b0d10 100%);
+  box-shadow:0 40px 90px -32px rgba(0,0,0,.85), 0 4px 14px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.ds-card {
+  border-radius:16px; border:1px solid rgba(255,255,255,.065);
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.014));
+  box-shadow:0 14px 34px -18px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.045);
+  padding:14px 16px;
+}
+.ds-well {
+  border-radius:12px; border:1px solid rgba(255,255,255,.05);
+  background:#07090b; padding:13px 16px;
 }
 
 /* layout */
-header { display:flex; align-items:center; gap:14px; padding:18px 28px; border-bottom:1px solid var(--line-soft); }
+header { display:flex; align-items:center; gap:14px; padding:18px 28px; }
 header .tag { color:var(--ink-faint); font-size:13px; }
-header .right { margin-left:auto; display:flex; align-items:center; gap:10px; }
-main { display:grid; grid-template-columns:360px minmax(0,1fr); gap:20px; padding:20px 28px; max-width:1360px; margin:0 auto; }
+header .right { margin-left:auto; }
+main { display:grid; grid-template-columns:360px minmax(0,1fr); gap:22px; padding:6px 28px 20px; max-width:1360px; margin:0 auto; }
 @media (max-width:900px){ main{ grid-template-columns:1fr; } }
 
 /* feed */
 #list { align-self:start; overflow:hidden; }
-#list .head { padding:12px 18px; border-bottom:1px solid var(--line-soft); }
-.row { padding:13px 18px; border-bottom:1px solid var(--line-soft); cursor:pointer; }
-.row:last-child { border-bottom:0; }
-.row:hover { background:var(--card); }
-.row.sel { background:var(--card); box-shadow:inset 2px 0 0 var(--ok); }
+#list .head { padding:14px 20px 10px; }
+.row { padding:12px 20px; border-top:1px solid rgba(255,255,255,.05); cursor:pointer; }
+.row:hover { background:rgba(255,255,255,.025); }
+.row.sel { background:rgba(255,255,255,.035); box-shadow:inset 2px 0 0 var(--accent); }
 .row .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .row .when { font:500 10.5px/1 var(--mono); color:var(--ink-faint); letter-spacing:.04em; }
 .row .sum { color:var(--ink-soft); font-size:13px; margin-top:5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -88,42 +98,40 @@ main { display:grid; grid-template-columns:360px minmax(0,1fr); gap:20px; paddin
 #detail { min-width:0; }
 #detail .inner { padding:24px 26px; }
 #detail .empty { color:var(--ink-faint); padding:70px 0; text-align:center; }
-h2 { font-size:16px; font-weight:600; letter-spacing:-.01em; }
-.meta { display:flex; align-items:center; gap:10px; margin:8px 0 22px; color:var(--ink-faint); font-size:13px; }
+h2 { font:600 16px/1.4 var(--sans); color:var(--ink); margin:0; letter-spacing:-.01em; }
+.meta { display:flex; align-items:center; gap:10px; margin:8px 0 22px; color:var(--ink-faint); font-size:12.5px; flex-wrap:wrap; }
 section { margin-bottom:22px; }
-section .kicker { display:block; margin-bottom:8px; }
-.card { background:var(--card); border:1px solid var(--line-soft); border-radius:12px; padding:13px 16px; }
-.termbox { background:var(--term); border:1px solid var(--line-soft); border-radius:12px; padding:13px 16px; }
+section .label { display:block; margin-bottom:9px; }
 pre { margin:0; font:12px/1.7 var(--mono); color:var(--ink-soft); overflow-x:auto; }
 .steps div { padding:3px 0; font-size:13.5px; color:var(--ink-soft); }
-.steps .ok::before { content:"✓ "; color:var(--ok); font-family:var(--mono); }
+.steps .ok::before { content:"✓ "; color:var(--pine); font-family:var(--mono); }
 .steps .no::before { content:"✗ "; color:var(--bad); font-family:var(--mono); }
-.steps .adv::before { content:"◆ "; color:var(--info); font-family:var(--mono); }
+.steps .adv::before { content:"◆ "; color:var(--ink-faint); font-family:var(--mono); }
 .shots { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .shots figure { margin:0; }
-.shots img { width:100%; border:1px solid var(--line); border-radius:10px; display:block; background:var(--term); }
-.shots figcaption { font:500 10.5px/1.5 var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin-top:8px; }
+.shots img { width:100%; border:1px solid rgba(255,255,255,.07); border-radius:12px; display:block; background:#07090b; }
+.shots figcaption { font:500 10.5px/1.5 var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-top:8px; }
 .mem div { color:var(--ink-soft); font-size:13px; padding:3px 0; }
 .mem div::before { content:"· "; color:var(--ink-faint); }
-.prcard a.pr { font:500 12.5px var(--mono); color:#8ce0ac; word-break:break-all; }
+.prcard { color:var(--ink-soft); font-size:13.5px; }
+.prcard a.pr { font:500 12.5px var(--mono); color:var(--accent); word-break:break-all; }
 .prcard .note { color:var(--ink-faint); font-size:12.5px; margin-top:6px; }
-d-l { display:block; font:12px/1.7 var(--mono); white-space:pre; }
-.d-add { color:#8ce0ac; } .d-del { color:var(--bad); } .d-meta { color:var(--ink-faint); }
+d-l { display:block; font:12px/1.7 var(--mono); white-space:pre; color:var(--ink-soft); }
+.d-add { color:var(--pine); } .d-del { color:var(--bad); } .d-meta { color:var(--ink-faint); }
 footer { text-align:center; color:var(--ink-faint); font-size:12.5px; padding:26px 0 40px; }
-footer a { color:var(--ink-soft); border-bottom:1px solid var(--line-hi); }
+footer a { color:var(--ink-soft); border-bottom:1px solid rgba(255,255,255,.16); }
+footer a:hover { color:var(--accent); }
 </style>
 </head>
 <body>
 <header>
   <span class="wordmark">drums</span>
   <span class="tag">the product that improves itself · incident console</span>
-  <div class="right">
-    <span class="chip chip-RUNNING" id="livechip">watching</span>
-  </div>
+  <div class="right"><span class="chip chip-RUNNING" id="livechip">watching</span></div>
 </header>
 <main>
-  <div id="list" class="panel"><div class="head kicker">incidents</div><div id="rows"></div></div>
-  <div id="detail" class="panel"><div class="inner"><div class="empty">No incidents yet. Use the app like a real user — if something fails, it shows up here.</div></div></div>
+  <div id="list" class="ds-panel"><div class="head label">incidents</div><div id="rows"></div></div>
+  <div id="detail" class="ds-panel"><div class="inner"><div class="empty">No incidents yet. Use the app like a real user — if something fails, it shows up here.</div></div></div>
 </main>
 <footer>every checkmark is real execution · <a href="https://github.com/sahiljagtap08/drums-greptile" target="_blank">github.com/sahiljagtap08/drums-greptile</a></footer>
 <script>
@@ -181,15 +189,15 @@ function render() {
   document.querySelector("#detail .inner").innerHTML = `
     <h2>${esc(failureLine(it.incident.failure))}</h2>
     <div class="meta">${chip(it.state)}<span>page ${esc(it.incident.url || "/")}</span><span class="num">${esc(it.id)}</span></div>
-    <section><span class="kicker">what the user did</span><div class="termbox"><pre>${esc(traceLines(it.incident).join("\n")) || "(no trace)"}</pre></div></section>
-    ${it.memory && it.memory.length ? `<section><span class="kicker">what drums remembers</span><div class="card mem">${it.memory.map((m) => `<div>${esc(m)}</div>`).join("")}</div></section>` : ""}
-    <section><span class="kicker">the loop</span><div class="card steps">${checkSteps(it).map((s) => `<div class="${s.cls}">${esc(s.t)}</div>`).join("")}</div></section>
-    ${it.hasShots ? `<section><span class="kicker">what the user saw</span><div class="shots">
+    <section><span class="label">what the user did</span><div class="ds-well"><pre>${esc(traceLines(it.incident).join("\n")) || "(no trace)"}</pre></div></section>
+    ${it.memory && it.memory.length ? `<section><span class="label">what drums remembers</span><div class="ds-card mem">${it.memory.map((m) => `<div>${esc(m)}</div>`).join("")}</div></section>` : ""}
+    <section><span class="label">the loop</span><div class="ds-card steps">${checkSteps(it).map((s) => `<div class="${s.cls}">${esc(s.t)}</div>`).join("")}</div></section>
+    ${it.hasShots ? `<section><span class="label">what the user saw</span><div class="shots">
       <figure><img src="artifact/${esc(it.id)}/before.png" loading="lazy"><figcaption>before — the failure</figcaption></figure>
       <figure><img src="artifact/${esc(it.id)}/after.png" loading="lazy"><figcaption>after — the verified repair</figcaption></figure>
     </div></section>` : ""}
-    ${it.diff ? `<section><span class="kicker">the repair, by codex</span><div class="termbox">${fmtDiff(it.diff)}</div></section>` : ""}
-    ${it.result && it.result.prUrl ? `<section><span class="kicker">independent review</span><div class="card prcard">Greptile reviews the candidate as the independent code reviewer.<br><a class="pr" href="${esc(it.result.prUrl)}" target="_blank">${esc(it.result.prUrl)}</a><div class="note">A human decides the merge. Drums does not deploy.</div></div></section>` : ""}`;
+    ${it.diff ? `<section><span class="label">the repair, by codex</span><div class="ds-well">${fmtDiff(it.diff)}</div></section>` : ""}
+    ${it.result && it.result.prUrl ? `<section><span class="label">independent review</span><div class="ds-card prcard">Greptile reviews the candidate as the independent code reviewer.<br><a class="pr" href="${esc(it.result.prUrl)}" target="_blank">${esc(it.result.prUrl)}</a><div class="note">A human decides the merge. Drums does not deploy.</div></div></section>` : ""}`;
 }
 
 async function load() {
