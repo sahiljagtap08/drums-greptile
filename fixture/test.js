@@ -26,6 +26,9 @@ async function main() {
   const ok = await post("alice@example.com");
   assert.equal(ok.status, 200, "plain email must sign up");
   assert.equal(ok.body.domain, "example.com", "domain must be extracted");
+  const plus = await post("alice+greptile@example.com");
+  assert.equal(plus.status, 200, "plus-addressed email must sign up");
+  assert.equal(plus.body.domain, "example.com", "domain must be extracted from a plus address");
   const health = await fetch(`http://localhost:${PORT}/api/health`);
   assert.equal(health.status, 200, "health must stay up");
   console.log("guardrails pass");
